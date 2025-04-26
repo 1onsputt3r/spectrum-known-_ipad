@@ -523,6 +523,8 @@
       
       // 啟用背景按鈕
       ui.bgBtn.disabled = false;
+      // 在創建圖表後設置自定義下載按鈕
+      setTimeout(() => setupCustomDownloadButton('wavelengthPlot', 'spectrum_wavelength_analysis.png'), 500);
       bgImageOn = false;
       updateBgButton(false);
     }
@@ -560,6 +562,8 @@
         bgImageOn = false;
         updateBgButton(false);
       }
+      // 在背景切換後更新下載按鈕
+      setTimeout(() => setupCustomDownloadButton('wavelengthPlot', 'spectrum_wavelength_analysis.png'), 500);
     }
     
     // 更新背景按鈕樣式和文字
@@ -614,6 +618,51 @@
       }, 2000);
     }
     
+    // 設置自定義下載按鈕
+    function setupCustomDownloadButton(plotId, filename = 'spectrum.png') {
+      const modebar = document.querySelector(`#${plotId} .modebar`);
+      if (!modebar) return;
+
+      const downloadBtn = modebar.querySelector(".modebar-btn[data-title='Download plot as a png']");
+      if (!downloadBtn) return;
+
+      // 先移除原本 onclick
+      downloadBtn.onclick = null;
+
+      // 改成手動處理下載
+      downloadBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        try {
+          const dataUrl = await Plotly.toImage(plotId, {
+            format: "png",
+            height: 600,
+            width: 800,
+            scale: 2
+          });
+
+          const link = document.createElement("a");
+          link.href = dataUrl;
+          link.download = filename; // 指定明確的副檔名
+          link.target = "_blank";
+          link.rel = "noopener";
+
+          // iOS 特別處理：使用 data URL 開啟新頁籤比較穩
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+          if (isIOS) {
+            const win = window.open();
+            win.document.write(`<html><body style="margin:0;"><img src="${dataUrl}" style="width:100%;"/></body></html>`);
+          } else {
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }
+
+        } catch (err) {
+          console.error("下載圖像失敗：", err);
+          notify("圖像下載失敗", "error");
+        }
+      });
+    }
     // 啟動應用
     init();
   </script>
